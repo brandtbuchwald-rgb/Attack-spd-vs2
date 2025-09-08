@@ -13,26 +13,17 @@
     .grid { display: grid; grid-template-columns: 220px 1fr; gap: 10px; align-items: center; }
     .card { border: 1px solid #e5e5e5; border-radius: 12px; padding: 14px; margin: 12px 0; box-shadow: 0 1px 0 rgba(0,0,0,.03); }
     .row { display: contents; }
-    input[type="number"], select { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 10px; font-size: 16px; }
+    input[type="number"], input[readonly], select { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 10px; font-size: 16px; }
+    input[readonly] { background:#f9fafb; font-weight:700; }
     .muted { color: #666; font-size: .9rem; }
-    .result { font-weight: 600; font-size: 1.05rem; margin-top: 6px; }
-    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
-    .pill { display:inline-block; padding:3px 8px; border-radius:999px; border:1px solid #ddd; font-size:.85rem; }
-    .footer { margin-top:16px; font-size:.85rem; color:#666; }
-    .hint { font-size:.8rem; color:#777; margin-top:-6px;}
     .inline { display:flex; align-items:center; gap:10px; }
     .disabled { opacity:0.5; pointer-events:none; }
-    .pct { display:flex; align-items:center; gap:6px; }
-    .pct span { color:#666; }
+    .pct { position:relative; display:flex; align-items:center; }
+    .pct input { width:100%; padding-right:32px; }
+    .pct .suffix { position:absolute; right:10px; color:#666; pointer-events:none; }
     .bar { height: 14px; background: #f0f0f0; border-radius: 999px; overflow: hidden; margin-top:8px; }
     .bar > div { height: 100%; width: 0%; transition: width .25s ease, background .25s ease; }
-    .cap { display:inline-flex; align-items:center; gap:6px; font-size:.9rem; }
-    .badge { display:inline-block; font-size:.75rem; padding:2px 8px; border-radius:999px; border:1px solid #bbb; color:#444; background:#fafafa; }
-    .badge.ok { border-color:#53b36b; color:#2b6e3a; background:#edf8f0; }
-    .badge.warn { border-color:#d4b40a; color:#7a6510; background:#fff8d6; }
-    .hidden { display:none !important; }
     .boxrow { display:grid; grid-template-columns: 220px 1fr; gap:10px; align-items:center; margin-top:10px; }
-    .boxrow input { background:#f9fafb; font-weight:700; }
   </style>
 </head>
 <body>
@@ -77,27 +68,28 @@
       </div>
       <div class="row">
         <label>Guild Buff</label>
-        <div class="pct"><input id="guild" type="number" step="0.1" value="5"><span>%</span></div>
+        <div class="pct"><input id="guild" type="number" step="0.1" value="5"><span class="suffix">%</span></div>
       </div>
       <div class="row">
         <label>Secret Tech</label>
-        <div class="pct"><input id="secret" type="number" step="0.1" value="10"><span>%</span></div>
+        <div class="pct"><input id="secret" type="number" step="0.1" value="10"><span class="suffix">%</span></div>
       </div>
       <div class="row">
         <label>Equipment ATK SPD</label>
-        <div class="pct"><input id="equip" type="number" step="0.1" value="0"><span>%</span></div>
+        <div class="pct"><input id="equip" type="number" step="0.1" value="0"><span class="suffix">%</span></div>
       </div>
       <div class="row">
         <label>Rune ATK SPD</label>
-        <div class="pct"><input id="rune" type="number" step="0.1" value="0"><span>%</span></div>
+        <div class="pct"><input id="rune" type="number" step="0.1" value="0"><span class="suffix">%</span></div>
       </div>
-      <div class="row">
+      <!-- Hidden target final ATK SPD -->
+      <div class="row hidden">
         <label>Target Final ATK SPD</label>
         <input id="target" type="number" step="0.01" value="0.25">
       </div>
       <div class="row">
         <label>Quicken</label>
-        <div class="pct"><input id="quicken" type="number" step="0.1" value="0"><span>%</span></div>
+        <div class="pct"><input id="quicken" type="number" step="0.1" value="0"><span class="suffix">%</span></div>
       </div>
       <div class="row" id="furyRow">
         <label>Fury Lv.10</label>
@@ -108,27 +100,19 @@
       </div>
     </div>
 
-    <div class="hint">Enter <b>whole percentages</b> (type <b>6</b> for 6%).</div>
-
-    <!-- Hidden legacy lines -->
-    <div class="result mono hidden" id="needLine">ATK SPD % required to hit target: —</div>
-    <div class="result mono hidden" id="finalLine">Final ATK SPD: —</div>
-
     <!-- Progress -->
     <div class="bar"><div id="progressFill"></div></div>
     <div class="muted" id="progressText">Progress: —</div>
 
-    <!-- New boxes -->
+    <!-- Results -->
     <div class="boxrow">
       <label>Required ATK SPD</label>
-      <input id="requiredBox" type="number" readonly>
+      <div class="pct"><input id="requiredBox" type="number" readonly><span class="suffix">%</span></div>
     </div>
     <div class="boxrow">
       <label>Final ATK SPD</label>
       <input id="finalBox" type="number" readonly>
     </div>
-
-    <div class="muted">ATK SPD math: <span class="pill mono">required = 1 - target ÷ (base × (1 - quicken) × furyFactor)</span> · <span class="pill mono">final = base × (1 - total%) × (1 - quicken) × furyFactor</span> · <span class="pill mono">cap @ 0.25</span></div>
   </div>
 
   <div class="card">
@@ -140,19 +124,19 @@
       </div>
       <div class="row">
         <label>ATK %</label>
-        <div class="pct"><input id="atkPct" type="number" step="0.1" value="0"><span>%</span></div>
+        <div class="pct"><input id="atkPct" type="number" step="0.1" value="0"><span class="suffix">%</span></div>
       </div>
       <div class="row">
         <label>Racial %</label>
-        <div class="pct"><input id="racialPct" type="number" step="0.1" value="0"><span>%</span></div>
+        <div class="pct"><input id="racialPct" type="number" step="0.1" value="0"><span class="suffix">%</span></div>
       </div>
       <div class="row">
         <label>Crit Chance</label>
-        <div class="pct"><input id="crit" type="number" step="0.1" value="30"><span>%</span></div>
+        <div class="pct"><input id="crit" type="number" step="0.1" value="30"><span class="suffix">%</span></div>
       </div>
       <div class="row">
         <label>Crit DMG (extra)</label>
-        <div class="pct"><input id="critDmg" type="number" step="1" value="100"><span>%</span></div>
+        <div class="pct"><input id="critDmg" type="number" step="1" value="100"><span class="suffix">%</span></div>
       </div>
       <div class="row">
         <label>Other DMG Multiplier</label>
@@ -161,7 +145,6 @@
     </div>
     <div class="result mono" id="dmgLine">Effective Hit Damage: —</div>
     <div class="result mono" id="dpsLine">DPS (uses Final ATK SPD above): —</div>
-    <div class="muted">DPS math: <span class="pill mono">damage = ATK × (1+ATK%) × (1+Racial%) × Other</span> · <span class="pill mono">E[crit] = (1-cc) + cc × (1+critDMG)</span> · <span class="pill mono">DPS = damage × E[crit] ÷ Final ATK SPD</span></div>
   </div>
 
   <div class="card footer">
@@ -174,17 +157,16 @@
     "Primal":   {"Berserker":2.0, "Paladin":2.4, "Ranger":1.8, "Sorcerer":2.2},
     "PVP/Boss": {"Berserker":2.2, "Paladin":2.5, "Ranger":2.0, "Sorcerer":2.3}
   };
+  const TARGET_FINAL = 0.25;
 
   const els = (ids => ids.reduce((o,id)=> (o[id]=document.getElementById(id),o),{}))(
-    ["cls","weap","char","col","guild","secret","equip","rune","target","quicken","fury",
-     "needLine","progressFill","progressText","finalLine","requiredBox","finalBox",
+    ["cls","weap","char","col","guild","secret","equip","rune","quicken","fury",
+     "progressFill","progressText","requiredBox","finalBox",
      "atk","atkPct","racialPct","crit","critDmg","otherMult","dmgLine","dpsLine"]
   );
   const furyRow = document.getElementById("furyRow");
 
   function clamp(x, min, max){ return Math.max(min, Math.min(max, x)); }
-  function pct(x){ return (x*100).toFixed(2) + '%'; }
-  function spd(x){ return x.toFixed(3); }
   function pctInput(id){ return (parseFloat(els[id].value || 0) / 100); }
   function pctSelect(id){ return (parseFloat(els[id].value || 0) / 100); }
 
@@ -193,7 +175,6 @@
     const weap = els.weap.value;
     const baseSpd = base[weap][cls];
 
-    // Fury enable/disable
     if (cls === "Berserker") {
       furyRow.classList.remove("disabled");
     } else {
@@ -208,33 +189,27 @@
     const equip = pctInput("equip");
     const rune = pctInput("rune");
     const quicken = pctInput("quicken");
-
     const furyFactor = (els.fury.checked && cls === "Berserker") ? 0.25 : 1.0;
+
     const totalBonuses = char + color + guild + secret + equip + rune;
 
-    const target = parseFloat(els.target.value || 0.25);
     const denom = Math.max(baseSpd * (1 - quicken) * furyFactor, 1e-9);
-    const required = 1 - (target / denom); // decimal
-
-    const progress = clamp(required <= 0 ? 1 : totalBonuses / required, 0, 1);
+    const requiredTotal = 1 - (TARGET_FINAL / denom);
+    const remaining = Math.max(0, requiredTotal - totalBonuses);
+    const progress = clamp(requiredTotal <= 0 ? 1 : totalBonuses / requiredTotal, 0, 1);
 
     let finalRaw = baseSpd * (1 - totalBonuses) * (1 - quicken) * furyFactor;
-    const finalSpd = Math.max(finalRaw, 0.25); // cap
+    const finalSpd = Math.max(finalRaw, TARGET_FINAL);
 
-    // Progress UI
     els.progressFill.style.width = (progress * 100).toFixed(1) + '%';
     if(progress >= 1){ els.progressFill.style.background = "#4caf50"; }
     else if(progress >= 0.9){ els.progressFill.style.background = "#ffc107"; }
     else{ els.progressFill.style.background = "#2196f3"; }
     els.progressText.textContent = `Progress: ${(progress*100).toFixed(1)}% of required covered`;
 
-    // Boxes
-    els.requiredBox.value = (required * 100).toFixed(2); // show as percent number
-    els.finalBox.value = finalSpd.toFixed(3);            // show as seconds delay
-    els.requiredBox.title = 'Percent ATK SPD required to reach target (after quicken/fury)';
-    els.finalBox.title = 'Final ATK SPD (seconds per hit), capped at 0.25';
+    els.requiredBox.value = (remaining * 100).toFixed(2);
+    els.finalBox.value = finalSpd.toFixed(3);
 
-    // DPS
     const atk = parseFloat(els.atk.value || 0);
     const atkPct = pctInput("atkPct");
     const racial = pctInput("racialPct");
@@ -251,12 +226,9 @@
     els.dpsLine.textContent = `DPS: ${dps.toFixed(2)}`;
   }
 
-  Object.values(els).forEach(el => {
-    if (el && (el.tagName === 'INPUT' || el.tagName === 'SELECT')) {
-      el.addEventListener('input', recalc);
-      if (el.type === 'checkbox') el.addEventListener('change', recalc);
-    }
-  });
+  ["input","change"].forEach(evt => document.addEventListener(evt, e => {
+    if (e.target.matches('input, select')) recalc();
+  }));
   recalc();
 </script>
 </body>
