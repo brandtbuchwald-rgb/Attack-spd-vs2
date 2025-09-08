@@ -1,54 +1,154 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-  <meta charset="utf-8">
-  <title>EHT Attack Speed + DPS Calculator</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-title" content="EHT Calc">
-  <style>
-    body { font-family: -apple-system, system-ui, Segoe UI, Roboto, Arial, sans-serif; max-width: 900px; margin: 1.25rem auto; padding: 0 14px; }
-    h1 { font-size: 1.4rem; margin-bottom: .5rem; }
-    h2 { font-size: 1.15rem; margin-top: 1.25rem; }
-    .grid { display: grid; grid-template-columns: 220px 1fr; gap: 10px; align-items: center; }
-    .card { border: 1px solid #e5e5e5; border-radius: 12px; padding: 14px; margin: 12px 0; box-shadow: 0 1px 0 rgba(0,0,0,.03); }
-    .row { display: contents; }
-    input[type="number"], input[readonly], select { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 10px; font-size: 16px; }
-    input[readonly] { background:#f9fafb; font-weight:700; }
-    .muted { color: #666; font-size: .9rem; }
-    .inline { display:flex; align-items:center; gap:10px; }
-    .disabled { opacity:0.5; pointer-events:none; }
-    .pct { position:relative; display:flex; align-items:center; }
-    .pct input { width:100%; padding-right:32px; }
-    .pct .suffix { position:absolute; right:10px; color:#666; pointer-events:none; }
-    .bar { height: 14px; background: #f0f0f0; border-radius: 999px; overflow: hidden; margin-top:8px; }
-    .bar > div { height: 100%; width: 0%; transition: width .25s ease, background .25s ease; }
-    .boxrow { display:grid; grid-template-columns: 220px 1fr; gap:10px; align-items:center; margin-top:10px; }
-  </style>
+<meta charset="utf-8" />
+<title>Rediscover ATK SPD/DPS Calculator</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-title" content="EHT Calc" />
+<style>
+  :root{
+    --bg: #f7f8fb;
+    --card: rgba(255,255,255,0.9);
+    --border: rgba(0,0,0,0.06);
+    --text: #1c2431;
+    --muted: #6b7280;
+    --accent: #5865f2;
+    --accent-2: #7c3aed;
+    --good: #16a34a;
+    --warn: #f59e0b;
+    --bar-bg: #eef2ff;
+    --input-bg:#fbfbfe;
+    --shadow: 0 10px 30px rgba(18, 24, 40, 0.08);
+    --radius: 14px;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg: #0b1020;
+      --card: rgba(18,22,36,0.85);
+      --border: rgba(255,255,255,0.08);
+      --text: #eef2ff;
+      --muted: #9aa3b2;
+      --accent: #7c9bff;
+      --accent-2: #a78bfa;
+      --good: #22c55e;
+      --warn: #fbbf24;
+      --bar-bg:#1f2a44;
+      --input-bg:#12182a;
+      --shadow: 0 12px 34px rgba(0,0,0,0.45);
+    }
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0;
+    font-family: ui-sans-serif, -apple-system, system-ui, Segoe UI, Roboto, Arial, sans-serif;
+    color:var(--text);
+    background:
+      radial-gradient(1200px 600px at 10% -10%, rgba(124,58,237,0.12), transparent 60%),
+      radial-gradient(900px 600px at 110% -20%, rgba(88,101,242,0.12), transparent 50%),
+      var(--bg);
+    background-attachment: fixed;
+  }
+  header{
+    position:sticky; top:0; z-index:10;
+    background: linear-gradient(90deg, rgba(124,58,237,0.8), rgba(88,101,242,0.8));
+    backdrop-filter: saturate(140%) blur(6px);
+    color:white; padding:14px 18px;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.12);
+  }
+  header h1{font-size:18px; margin:0; display:flex; align-items:center; gap:10px;}
+  header .chip{font-size:12px; padding:4px 10px; border-radius:999px; background:rgba(255,255,255,0.18); border:1px solid rgba(255,255,255,0.3);}
+  main{max-width:920px; margin:18px auto; padding:0 14px;}
+  .card{
+    background:var(--card);
+    border:1px solid var(--border);
+    border-radius:var(--radius);
+    box-shadow: var(--shadow);
+    padding:16px;
+    margin:16px 0;
+    backdrop-filter: blur(6px);
+  }
+  h2{font-size:16px; margin:0 0 10px 0; display:flex; align-items:center; gap:8px;}
+  .section{display:grid; grid-template-columns: 240px 1fr; gap:12px; align-items:center;}
+  .row{display:contents;}
+  label{font-weight:600; color:var(--muted);}
+  /* Inverse inputs (all boxes) */
+  select, input[type="number"], input[readonly]{
+    width:100%; border:1px solid var(--border); border-radius:12px; padding:12px 14px; font-size:16px; font-weight:600;
+    background: var(--text); color: var(--bg);
+  }
+  .pct{ position:relative; }
+  .pct input{ padding-right:34px; }
+  .suffix{ position:absolute; right:10px; top:50%; transform:translateY(-50%); color:var(--bg); opacity:.8; pointer-events:none; font-weight:700; }
+  .seg{ display:flex; gap:8px; flex-wrap:wrap; }
+  .seg button, .seg select{
+    appearance:none; border:1px solid var(--border); background:var(--input-bg); color:var(--text);
+    border-radius:12px; padding:10px 12px; font-weight:600; cursor:pointer; min-width:64px;
+    transition: transform .02s ease, border .2s ease, background .2s ease;
+  }
+  .seg button.is-active{ border-color: var(--accent); outline: 2px solid rgba(88,101,242,0.25); }
+  .seg button:hover{ transform: translateY(-1px); }
+  /* Progress */
+  .bar{ height: 16px; background: var(--bar-bg); border:1px solid var(--border); border-radius:999px; overflow:hidden; }
+  .bar > div{
+    height:100%; width:0%;
+    background-image: linear-gradient(90deg, rgba(88,101,242,1), rgba(124,58,237,1));
+    background-size: 200% 100%;
+    animation: shine 2.5s linear infinite;
+    transition: width .25s ease, filter .25s ease;
+  }
+  @keyframes shine { 0% { background-position: 0% 0%; } 100% { background-position: 200% 0%; } }
+  .bar.good > div{ background-image: linear-gradient(90deg, #22c55e, #16a34a); }
+  .bar.warn > div{ background-image: linear-gradient(90deg, #fbbf24, #f59e0b); }
+  .muted{ color:var(--muted); font-size:.92rem; }
+  /* Stat cards (bigger result boxes) */
+  .stats{ display:grid; grid-template-columns: 1fr 1fr; gap:12px; }
+  .stat{
+    border-radius:14px; padding:14px; border:1px solid var(--border); background: color-mix(in srgb, var(--card) 70%, transparent);
+    box-shadow: var(--shadow);
+  }
+  .stat label{ display:block; color:var(--muted); font-size:.95rem; margin-bottom:6px; }
+  .stat .value input{ font-size:22px; padding:14px; border-radius:12px; }
+  /* Layout tweaks */
+  .grid2{ display:grid; grid-template-columns: 1fr 1fr; gap:12px; }
+  .hidden{ display:none !important; }
+  @media (max-width:740px){
+    .section{ grid-template-columns: 1fr; }
+    .stats, .grid2{ grid-template-columns: 1fr; }
+  }
+</style>
 </head>
 <body>
-  <h1>EHT Attack Speed + DPS Calculator</h1>
+<header>
+  <h1>Rediscover ATK SPD/DPS Calculator <span class="chip">Mobile</span></h1>
+</header>
 
+<main>
   <div class="card">
     <h2>Base & Buffs</h2>
-    <div class="grid">
+    <div class="section">
       <div class="row">
         <label>Class</label>
-        <select id="cls">
-          <option>Berserker</option>
-          <option>Paladin</option>
-          <option>Ranger</option>
-          <option selected>Sorcerer</option>
-        </select>
+        <div class="seg" id="classSeg">
+          <button type="button" data-val="Berserker">🪓 Berserker</button>
+          <button type="button" data-val="Paladin">🛡️ Paladin</button>
+          <button type="button" data-val="Ranger">🏹 Ranger</button>
+          <button type="button" data-val="Sorcerer" class="is-active">🔮 Sorcerer</button>
+        </div>
+        <select id="cls" class="hidden"></select>
       </div>
+
       <div class="row">
         <label>Weapon Speed</label>
-        <select id="weap">
-          <option>Original</option>
-          <option>Primal</option>
-          <option selected>PVP/Boss</option>
-        </select>
+        <div class="seg" id="weaponSeg">
+          <button type="button" data-val="Original">Original</button>
+          <button type="button" data-val="Primal">Primal</button>
+          <button type="button" data-val="PVP/Boss" class="is-active">PVP/Boss</button>
+        </div>
+        <select id="weap" class="hidden"></select>
       </div>
+
       <div class="row">
         <label>Characteristic</label>
         <select id="char">
@@ -57,6 +157,7 @@
           <option value="10">Swift (+10%)</option>
         </select>
       </div>
+
       <div class="row">
         <label>Atk SPD Colour</label>
         <select id="col">
@@ -66,24 +167,30 @@
           <option value="30" selected>Purple (+30%)</option>
         </select>
       </div>
+
       <div class="row">
         <label>Guild Buff</label>
         <div class="pct"><input id="guild" type="number" inputmode="decimal" step="0.1" value="5"><span class="suffix">%</span></div>
       </div>
+
       <div class="row">
         <label>Secret Tech</label>
         <div class="pct"><input id="secret" type="number" inputmode="decimal" step="0.1" value="10"><span class="suffix">%</span></div>
       </div>
+
       <div class="row">
         <label>Equipment ATK SPD</label>
         <div class="pct"><input id="equip" type="number" inputmode="decimal" step="0.1" value="0"><span class="suffix">%</span></div>
       </div>
+
       <div class="row">
         <label>Rune ATK SPD</label>
         <div class="pct"><input id="rune" type="number" inputmode="decimal" step="0.1" value="0"><span class="suffix">%</span></div>
       </div>
-      <!-- Hidden target final ATK SPD -->
+
+      <!-- Target hidden -->
       <input id="target" type="hidden" value="0.25">
+
       <div class="row">
         <label>Quicken</label>
         <select id="quicken">
@@ -95,33 +202,37 @@
           <option value="5">Lv.5 (+5%)</option>
         </select>
       </div>
+
       <div class="row" id="furyRow">
         <label>Fury Lv.10</label>
-        <div class="inline">
-          <input id="fury" type="checkbox">
-          <span class="muted">Berserker only</span>
+        <div class="seg">
+          <button type="button" id="furyBtn" data-on="0">Off</button>
         </div>
+        <input id="fury" type="checkbox" class="hidden">
       </div>
     </div>
 
-    <!-- Progress -->
-    <div class="bar"><div id="progressFill"></div></div>
-    <div class="muted" id="progressText">Progress: —</div>
-
-    <!-- Results -->
-    <div class="boxrow">
-      <label>Required ATK SPD</label>
-      <div class="pct"><input id="requiredBox" type="number" readonly><span class="suffix">%</span></div>
-    </div>
-    <div class="boxrow">
-      <label>Final ATK SPD</label>
-      <input id="finalBox" type="number" readonly>
+    <div class="grid2" style="margin-top:12px">
+      <div>
+        <div class="bar" id="pbar"><div id="progressFill"></div></div>
+        <div class="muted" id="progressText">Progress: —</div>
+      </div>
+      <div class="stats">
+        <div class="stat">
+          <label>Required ATK SPD</label>
+          <div class="value pct"><input id="requiredBox" type="number" readonly><span class="suffix">%</span></div>
+        </div>
+        <div class="stat">
+          <label>Final ATK SPD</label>
+          <div class="value"><input id="finalBox" type="number" readonly></div>
+        </div>
+      </div>
     </div>
   </div>
 
   <div class="card">
     <h2>DPS Inputs</h2>
-    <div class="grid">
+    <div class="section">
       <div class="row">
         <label>Weapon ATK (base)</label>
         <input id="atk" type="number" inputmode="decimal" step="1" value="1000">
@@ -147,15 +258,25 @@
         <input id="otherMult" type="number" inputmode="decimal" step="0.01" value="1.00">
       </div>
     </div>
-    <div class="result mono" id="dmgLine">Effective Hit Damage: —</div>
-    <div class="result mono" id="dpsLine">DPS (uses Final ATK SPD above): —</div>
+    <div class="grid2" style="margin-top:10px">
+      <div class="stat">
+        <label>Effective Hit Damage</label>
+        <div class="value"><input id="dmgOut" type="number" readonly></div>
+      </div>
+      <div class="stat">
+        <label>DPS</label>
+        <div class="value"><input id="dpsOut" type="number" readonly></div>
+      </div>
+    </div>
   </div>
 
-  <div class="card footer">
-    Tip: after publishing to GitHub Pages, open in Safari → Share → <b>Add to Home Screen</b> to use as an app.
+  <div class="card" style="text-align:center">
+    <div class="muted">Add to Home Screen for a native feel 📱</div>
   </div>
+</main>
 
 <script>
+  // Data
   const base = {
     "Original": {"Berserker":2.0, "Paladin":2.4, "Ranger":1.8, "Sorcerer":2.2},
     "Primal":   {"Berserker":2.0, "Paladin":2.4, "Ranger":1.8, "Sorcerer":2.2},
@@ -163,13 +284,50 @@
   };
   const TARGET_FINAL = 0.25;
 
+  // Hidden selects to reuse logic
   const els = (ids => ids.reduce((o,id)=> (o[id]=document.getElementById(id),o),{}))(
     ["cls","weap","char","col","guild","secret","equip","rune","quicken","fury",
-     "progressFill","progressText","requiredBox","finalBox",
-     "atk","atkPct","racialPct","crit","critDmg","otherMult","dmgLine","dpsLine"]
+     "progressFill","progressText","requiredBox","finalBox","furyBtn","pbar",
+     "atk","atkPct","racialPct","crit","critDmg","otherMult","dmgOut","dpsOut"]
   );
+
+  // Build hidden class & weapon selects
+  ["Berserker","Paladin","Ranger","Sorcerer"].forEach(v => {
+    const opt = document.createElement('option'); opt.value=v; opt.text=v; els.cls.appendChild(opt);
+  });
+  ["Original","Primal","PVP/Boss"].forEach(v => {
+    const opt = document.createElement('option'); opt.value=v; opt.text=v; els.weap.appendChild(opt);
+  });
+  els.cls.value = "Sorcerer";
+  els.weap.value = "PVP/Boss";
+
+  // Segmented controls behavior
+  function wireSeg(segId, selectEl){
+    const seg = document.getElementById(segId);
+    seg.addEventListener('click', e => {
+      const btn = e.target.closest('button'); if(!btn) return;
+      seg.querySelectorAll('button').forEach(b => b.classList.remove('is-active'));
+      btn.classList.add('is-active');
+      selectEl.value = btn.dataset.val;
+      recalc();
+    });
+  }
+  wireSeg('classSeg', els.cls);
+  wireSeg('weaponSeg', els.weap);
+
+  // Fury fancy button (toggles checkbox)
+  els.furyBtn.addEventListener('click', () => {
+    const on = els.furyBtn.getAttribute('data-on') === '1';
+    els.furyBtn.setAttribute('data-on', on ? '0' : '1');
+    els.fury.checked = !on;
+    els.furyBtn.textContent = els.fury.checked ? 'On' : 'Off';
+    els.furyBtn.classList.toggle('is-active', els.fury.checked);
+    recalc();
+  });
+
   const furyRow = document.getElementById("furyRow");
 
+  // Helpers
   function clamp(x, min, max){ return Math.max(min, Math.min(max, x)); }
   function pctInput(id){ return (parseFloat(els[id].value || 0) / 100); }
   function pctSelect(id){ return (parseFloat(els[id].value || 0) / 100); }
@@ -179,12 +337,15 @@
     const weap = els.weap.value;
     const baseSpd = base[weap][cls];
 
-    // Fury toggle availability
+    // Fury availability
     if (cls === "Berserker") {
-      furyRow.classList.remove("disabled");
+      furyRow.classList.remove("hidden");
     } else {
-      furyRow.classList.add("disabled");
+      furyRow.classList.add("hidden");
       els.fury.checked = false;
+      els.furyBtn.setAttribute('data-on','0');
+      els.furyBtn.classList.remove('is-active');
+      els.furyBtn.textContent = 'Off';
     }
 
     const char = pctSelect("char");
@@ -193,27 +354,26 @@
     const secret = pctInput("secret");
     const equip = pctInput("equip");
     const rune = pctInput("rune");
-    // QUICKEN: read level (0-5) and convert to percent (1-5%)
-    const quicken = (parseFloat(els.quicken.value || 0) / 100);
+    const quicken = (parseFloat(els.quicken.value || 0) / 100); // level → percent (1–5% or 0)
     const furyFactor = (els.fury.checked && cls === "Berserker") ? 0.25 : 1.0;
 
     const totalBonuses = char + color + guild + secret + equip + rune;
 
-    // Required total % to reach target, then remaining after all your bonuses
+    // Required total %, remaining, and progress
     const denom = Math.max(baseSpd * (1 - quicken) * furyFactor, 1e-9);
     const requiredTotal = 1 - (TARGET_FINAL / denom);
     const remaining = Math.max(0, requiredTotal - totalBonuses);
     const progress = clamp(requiredTotal <= 0 ? 1 : totalBonuses / requiredTotal, 0, 1);
 
-    // Final speed (cap 0.25)
+    // Final speed (cap)
     let finalRaw = baseSpd * (1 - totalBonuses) * (1 - quicken) * furyFactor;
     const finalSpd = Math.max(finalRaw, TARGET_FINAL);
 
-    // Progress UI
+    // Progress visuals
     els.progressFill.style.width = (progress * 100).toFixed(1) + '%';
-    if(progress >= 1){ els.progressFill.style.background = "#4caf50"; }
-    else if(progress >= 0.9){ els.progressFill.style.background = "#ffc107"; }
-    else{ els.progressFill.style.background = "#2196f3"; }
+    els.pbar.classList.remove('good','warn');
+    if(progress >= 1){ els.pbar.classList.add('good'); }
+    else if(progress >= 0.9){ els.pbar.classList.add('warn'); }
     els.progressText.textContent = `Progress: ${(progress*100).toFixed(1)}% of required covered`;
 
     // Outputs
@@ -233,11 +393,11 @@
     const effDamage = baseDamage * expectedCrit;
     const dps = effDamage / Math.max(finalSpd, 1e-9);
 
-    els.dmgLine.textContent = `Effective Hit Damage: ${effDamage.toFixed(2)}`;
-    els.dpsLine.textContent = `DPS: ${dps.toFixed(2)}`;
+    els.dmgOut.value = effDamage.toFixed(2);
+    els.dpsOut.value = dps.toFixed(2);
   }
 
-  // Easier typing: select/clear zeros on focus; restore 0 if left blank
+  // Easier typing: select/clear zeros on focus; restore 0 if blank
   function isEditableNumber(el){
     return el.tagName === 'INPUT' && el.type === 'number' && !el.readOnly;
   }
@@ -254,7 +414,7 @@
     if ((el.value || '').trim() === '') { el.value = '0'; recalc(); }
   });
 
-  ["input","change"].forEach(evt => document.addEventListener(evt, e => {
+  ["input","change","click"].forEach(evt => document.addEventListener(evt, e => {
     if (e.target.matches('input, select')) recalc();
   }));
   recalc();
