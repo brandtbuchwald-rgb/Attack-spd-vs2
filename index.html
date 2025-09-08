@@ -82,11 +82,18 @@
         <label>Rune ATK SPD</label>
         <div class="pct"><input id="rune" type="number" inputmode="decimal" step="0.1" value="0"><span class="suffix">%</span></div>
       </div>
-      <!-- Hidden target -->
+      <!-- Hidden target final ATK SPD -->
       <input id="target" type="hidden" value="0.25">
       <div class="row">
         <label>Quicken</label>
-        <div class="pct"><input id="quicken" type="number" inputmode="decimal" step="0.1" value="0"><span class="suffix">%</span></div>
+        <select id="quicken">
+          <option value="0">None</option>
+          <option value="1">Lv.1 (+1%)</option>
+          <option value="2">Lv.2 (+2%)</option>
+          <option value="3">Lv.3 (+3%)</option>
+          <option value="4">Lv.4 (+4%)</option>
+          <option value="5">Lv.5 (+5%)</option>
+        </select>
       </div>
       <div class="row" id="furyRow">
         <label>Fury Lv.10</label>
@@ -172,6 +179,7 @@
     const weap = els.weap.value;
     const baseSpd = base[weap][cls];
 
+    // Fury toggle availability
     if (cls === "Berserker") {
       furyRow.classList.remove("disabled");
     } else {
@@ -185,28 +193,34 @@
     const secret = pctInput("secret");
     const equip = pctInput("equip");
     const rune = pctInput("rune");
-    const quicken = pctInput("quicken");
+    // QUICKEN: read level (0-5) and convert to percent (1-5%)
+    const quicken = (parseFloat(els.quicken.value || 0) / 100);
     const furyFactor = (els.fury.checked && cls === "Berserker") ? 0.25 : 1.0;
 
     const totalBonuses = char + color + guild + secret + equip + rune;
 
+    // Required total % to reach target, then remaining after all your bonuses
     const denom = Math.max(baseSpd * (1 - quicken) * furyFactor, 1e-9);
     const requiredTotal = 1 - (TARGET_FINAL / denom);
     const remaining = Math.max(0, requiredTotal - totalBonuses);
     const progress = clamp(requiredTotal <= 0 ? 1 : totalBonuses / requiredTotal, 0, 1);
 
+    // Final speed (cap 0.25)
     let finalRaw = baseSpd * (1 - totalBonuses) * (1 - quicken) * furyFactor;
     const finalSpd = Math.max(finalRaw, TARGET_FINAL);
 
+    // Progress UI
     els.progressFill.style.width = (progress * 100).toFixed(1) + '%';
     if(progress >= 1){ els.progressFill.style.background = "#4caf50"; }
     else if(progress >= 0.9){ els.progressFill.style.background = "#ffc107"; }
     else{ els.progressFill.style.background = "#2196f3"; }
     els.progressText.textContent = `Progress: ${(progress*100).toFixed(1)}% of required covered`;
 
+    // Outputs
     els.requiredBox.value = (remaining * 100).toFixed(2);
     els.finalBox.value = finalSpd.toFixed(2);
 
+    // DPS
     const atk = parseFloat(els.atk.value || 0);
     const atkPct = pctInput("atkPct");
     const racial = pctInput("racialPct");
@@ -223,7 +237,7 @@
     els.dpsLine.textContent = `DPS: ${dps.toFixed(2)}`;
   }
 
-  // Auto-clear/select for easier typing (if value is 0, clear on focus; restore if left blank)
+  // Easier typing: select/clear zeros on focus; restore 0 if left blank
   function isEditableNumber(el){
     return el.tagName === 'INPUT' && el.type === 'number' && !el.readOnly;
   }
