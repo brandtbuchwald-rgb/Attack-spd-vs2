@@ -30,6 +30,9 @@
     .badge { display:inline-block; font-size:.75rem; padding:2px 8px; border-radius:999px; border:1px solid #bbb; color:#444; background:#fafafa; }
     .badge.ok { border-color:#53b36b; color:#2b6e3a; background:#edf8f0; }
     .badge.warn { border-color:#d4b40a; color:#7a6510; background:#fff8d6; }
+    .hidden { display:none !important; }
+    .boxrow { display:grid; grid-template-columns: 220px 1fr; gap:10px; align-items:center; margin-top:10px; }
+    .boxrow input { background:#f9fafb; font-weight:700; }
   </style>
 </head>
 <body>
@@ -61,7 +64,6 @@
           <option value="0">None</option>
           <option value="7" selected>Heroic (+7%)</option>
           <option value="10">Swift (+10%)</option>
-          <option value="3">Nimble (+3%)</option>
         </select>
       </div>
       <div class="row">
@@ -107,11 +109,25 @@
     </div>
 
     <div class="hint">Enter <b>whole percentages</b> (type <b>6</b> for 6%).</div>
-    <div class="result mono" id="needLine">ATK SPD % required to hit target: —</div>
+
+    <!-- Hidden legacy lines -->
+    <div class="result mono hidden" id="needLine">ATK SPD % required to hit target: —</div>
+    <div class="result mono hidden" id="finalLine">Final ATK SPD: —</div>
+
+    <!-- Progress -->
     <div class="bar"><div id="progressFill"></div></div>
     <div class="muted" id="progressText">Progress: —</div>
-    <div class="result mono" id="equipLine">Remaining % needed (after all boxes incl. equip/rune): —</div>
-    <div class="result mono cap" id="finalLine">Final ATK SPD: —</div>
+
+    <!-- New boxes -->
+    <div class="boxrow">
+      <label>Required ATK SPD</label>
+      <input id="requiredBox" type="number" readonly>
+    </div>
+    <div class="boxrow">
+      <label>Final ATK SPD</label>
+      <input id="finalBox" type="number" readonly>
+    </div>
+
     <div class="muted">ATK SPD math: <span class="pill mono">required = 1 - target ÷ (base × (1 - quicken) × furyFactor)</span> · <span class="pill mono">final = base × (1 - total%) × (1 - quicken) × furyFactor</span> · <span class="pill mono">cap @ 0.25</span></div>
   </div>
 
@@ -161,7 +177,7 @@
 
   const els = (ids => ids.reduce((o,id)=> (o[id]=document.getElementById(id),o),{}))(
     ["cls","weap","char","col","guild","secret","equip","rune","target","quicken","fury",
-     "needLine","progressFill","progressText","equipLine","finalLine",
+     "needLine","progressFill","progressText","finalLine","requiredBox","finalBox",
      "atk","atkPct","racialPct","crit","critDmg","otherMult","dmgLine","dpsLine"]
   );
   const furyRow = document.getElementById("furyRow");
@@ -198,24 +214,27 @@
 
     const target = parseFloat(els.target.value || 0.25);
     const denom = Math.max(baseSpd * (1 - quicken) * furyFactor, 1e-9);
-    const required = 1 - (target / denom);
+    const required = 1 - (target / denom); // decimal
 
-    const remaining = Math.max(0, required - totalBonuses);
     const progress = clamp(required <= 0 ? 1 : totalBonuses / required, 0, 1);
 
     let finalRaw = baseSpd * (1 - totalBonuses) * (1 - quicken) * furyFactor;
-    const capped = finalRaw < 0.25;
-    const finalSpd = Math.max(finalRaw, 0.25);
+    const finalSpd = Math.max(finalRaw, 0.25); // cap
 
-    els.needLine.textContent = `ATK SPD % required to hit target: ${pct(required)}`;
+    // Progress UI
     els.progressFill.style.width = (progress * 100).toFixed(1) + '%';
     if(progress >= 1){ els.progressFill.style.background = "#4caf50"; }
     else if(progress >= 0.9){ els.progressFill.style.background = "#ffc107"; }
     else{ els.progressFill.style.background = "#2196f3"; }
     els.progressText.textContent = `Progress: ${(progress*100).toFixed(1)}% of required covered`;
-    els.equipLine.textContent = `Remaining % needed (after all boxes incl. equip/rune): ${pct(remaining)}`;
-    els.finalLine.innerHTML = `Final ATK SPD: ${spd(finalSpd)} (base ${baseSpd}) ` + (capped ? '<span class="badge ok">Capped @ 0.25</span>' : '<span class="badge warn">Not capped</span>');
 
+    // Boxes
+    els.requiredBox.value = (required * 100).toFixed(2); // show as percent number
+    els.finalBox.value = finalSpd.toFixed(3);            // show as seconds delay
+    els.requiredBox.title = 'Percent ATK SPD required to reach target (after quicken/fury)';
+    els.finalBox.title = 'Final ATK SPD (seconds per hit), capped at 0.25';
+
+    // DPS
     const atk = parseFloat(els.atk.value || 0);
     const atkPct = pctInput("atkPct");
     const racial = pctInput("racialPct");
@@ -240,7 +259,5 @@
   });
   recalc();
 </script>
-</body>
-</html>
 </body>
 </html>
