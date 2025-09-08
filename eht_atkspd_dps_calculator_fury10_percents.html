@@ -1,0 +1,226 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>EHT Attack Speed + DPS Calculator</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="EHT Calc">
+  <style>
+    body { font-family: -apple-system, system-ui, Segoe UI, Roboto, Arial, sans-serif; max-width: 860px; margin: 1.25rem auto; padding: 0 14px; }
+    h1 { font-size: 1.4rem; margin-bottom: .5rem; }
+    h2 { font-size: 1.15rem; margin-top: 1.25rem; }
+    .grid { display: grid; grid-template-columns: 210px 1fr; gap: 10px; align-items: center; }
+    .card { border: 1px solid #e5e5e5; border-radius: 12px; padding: 14px; margin: 12px 0; box-shadow: 0 1px 0 rgba(0,0,0,.03); }
+    .row { display: contents; }
+    input[type="number"], select { width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 10px; font-size: 16px; }
+    .muted { color: #666; font-size: .9rem; }
+    .result { font-weight: 600; font-size: 1.05rem; margin-top: 6px; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .pill { display:inline-block; padding:3px 8px; border-radius:999px; border:1px solid #ddd; font-size:.85rem; }
+    .footer { margin-top:16px; font-size:.85rem; color:#666; }
+    .hint { font-size:.8rem; color:#777; margin-top:-6px;}
+    .inline { display:flex; align-items:center; gap:10px; }
+    .disabled { opacity:0.5; pointer-events:none; }
+    .pct { display:flex; align-items:center; gap:6px; }
+    .pct span { color:#666; }
+  </style>
+</head>
+<body>
+  <h1>EHT Attack Speed + DPS Calculator</h1>
+
+  <div class="card">
+    <h2>Base & Buffs</h2>
+    <div class="grid">
+      <div class="row">
+        <label>Class</label>
+        <select id="cls">
+          <option>Berserker</option>
+          <option>Paladin</option>
+          <option>Ranger</option>
+          <option selected>Sorcerer</option>
+        </select>
+      </div>
+      <div class="row">
+        <label>Weapon Speed</label>
+        <select id="weap">
+          <option>Original</option>
+          <option>Primal</option>
+          <option selected>PVP/Boss</option>
+        </select>
+      </div>
+      <div class="row">
+        <label>Characteristic</label>
+        <select id="char">
+          <option value="0">None</option>
+          <option value="7" selected>Heroic (+7%)</option>
+          <option value="10">Swift (+10%)</option>
+          <option value="3">Nimble (+3%)</option>
+        </select>
+      </div>
+      <div class="row">
+        <label>Atk SPD Colour</label>
+        <select id="col">
+          <option value="0">Normal (+0%)</option>
+          <option value="10">Blue (+10%)</option>
+          <option value="20">Orange (+20%)</option>
+          <option value="30" selected>Purple (+30%)</option>
+        </select>
+      </div>
+      <div class="row">
+        <label>Guild Buff</label>
+        <div class="pct"><input id="guild" type="number" step="0.1" value="5"><span>%</span></div>
+      </div>
+      <div class="row">
+        <label>Secret Tech</label>
+        <div class="pct"><input id="secret" type="number" step="0.1" value="10"><span>%</span></div>
+      </div>
+      <div class="row">
+        <label>Equipment ATK SPD</label>
+        <div class="pct"><input id="equip" type="number" step="0.1" value="0"><span>%</span></div>
+      </div>
+      <div class="row">
+        <label>Rune ATK SPD</label>
+        <div class="pct"><input id="rune" type="number" step="0.1" value="0"><span>%</span></div>
+      </div>
+      <div class="row">
+        <label>Target Final ATK SPD</label>
+        <input id="target" type="number" step="0.01" value="0.25">
+      </div>
+      <div class="row">
+        <label>Quicken</label>
+        <div class="pct"><input id="quicken" type="number" step="0.1" value="0"><span>%</span></div>
+      </div>
+      <div class="row" id="furyRow">
+        <label>Fury Lv.10</label>
+        <div class="inline">
+          <input id="fury" type="checkbox">
+          <span class="muted">Berserker only</span>
+        </div>
+      </div>
+    </div>
+    <div class="hint">Enter **whole percentages** (e.g., type <b>6</b> for 6%).</div>
+    <div class="result mono" id="needLine">ATK SPD % required to hit target: —</div>
+    <div class="result mono" id="equipLine">Equipment/Rune % still needed (before equip/rune boxes): —</div>
+    <div class="result mono" id="finalLine">Final ATK SPD: —</div>
+    <div class="muted">ATK SPD math: <span class="pill mono">required = 1 - (target / base)</span> · <span class="pill mono">final = base × (1 - total%) × (1 - quicken)</span> · <span class="pill mono">Fury Lv.10 halves delay twice</span></div>
+  </div>
+
+  <div class="card">
+    <h2>DPS Inputs</h2>
+    <div class="grid">
+      <div class="row">
+        <label>Weapon ATK (base)</label>
+        <input id="atk" type="number" step="1" value="1000">
+      </div>
+      <div class="row">
+        <label>ATK %</label>
+        <div class="pct"><input id="atkPct" type="number" step="0.1" value="0"><span>%</span></div>
+      </div>
+      <div class="row">
+        <label>Racial %</label>
+        <div class="pct"><input id="racialPct" type="number" step="0.1" value="0"><span>%</span></div>
+      </div>
+      <div class="row">
+        <label>Crit Chance</label>
+        <div class="pct"><input id="crit" type="number" step="0.1" value="30"><span>%</span></div>
+      </div>
+      <div class="row">
+        <label>Crit DMG (extra)</label>
+        <div class="pct"><input id="critDmg" type="number" step="1" value="100"><span>%</span></div>
+      </div>
+      <div class="row">
+        <label>Other DMG Multiplier</label>
+        <input id="otherMult" type="number" step="0.01" value="1.00">
+      </div>
+    </div>
+    <div class="result mono" id="dmgLine">Effective Hit Damage: —</div>
+    <div class="result mono" id="dpsLine">DPS (uses Final ATK SPD above): —</div>
+    <div class="muted">DPS math: <span class="pill mono">damage = ATK × (1+ATK%) × (1+Racial%) × Other</span> · <span class="pill mono">E[crit] = (1-cc) + cc × (1+critDMG)</span> · <span class="pill mono">DPS = damage × E[crit] ÷ Final ATK SPD</span></div>
+  </div>
+
+  <div class="card footer">
+    Tip: after publishing to GitHub Pages, open in Safari → Share → <b>Add to Home Screen</b> to use as an app.
+  </div>
+
+<script>
+  const base = {
+    "Original": {"Berserker":2.0, "Paladin":2.4, "Ranger":1.8, "Sorcerer":2.2},
+    "Primal":   {"Berserker":2.0, "Paladin":2.4, "Ranger":1.8, "Sorcerer":2.2},
+    "PVP/Boss": {"Berserker":2.2, "Paladin":2.5, "Ranger":2.0, "Sorcerer":2.3}
+  };
+
+  const els = (ids => ids.reduce((o,id)=> (o[id]=document.getElementById(id),o),{}))(
+    ["cls","weap","char","col","guild","secret","equip","rune","target","quicken","fury","needLine","equipLine","finalLine","atk","atkPct","racialPct","crit","critDmg","otherMult","dmgLine","dpsLine"]
+  );
+  const furyRow = document.getElementById("furyRow");
+
+  function pct(x){ return (x*100).toFixed(2) + '%'; }
+  function spd(x){ return x.toFixed(3); }
+  function pctInput(id){ return (parseFloat(els[id].value || 0) / 100); } // whole % → decimal
+  function pctSelect(id){ return (parseFloat(els[id].value || 0) / 100); } // whole % → decimal
+
+  function recalc(){
+    const cls = els.cls.value;
+    const weap = els.weap.value;
+    const baseSpd = base[weap][cls];
+
+    // Enable/disable Fury based on class
+    if (cls === "Berserker") {
+      furyRow.classList.remove("disabled");
+    } else {
+      furyRow.classList.add("disabled");
+      els.fury.checked = false;
+    }
+
+    const char = pctSelect("char");
+    const color = pctSelect("col");
+    const guild = pctInput("guild");
+    const secret = pctInput("secret");
+    const equip = pctInput("equip");
+    const rune = pctInput("rune");
+    const quicken = pctInput("quicken");
+
+    const preEquipTotal = char + color + guild + secret;
+    const total = preEquipTotal + equip + rune;
+    const required = 1 - (parseFloat(els.target.value || 0.25) / baseSpd);
+    const equipNeeded = Math.max(0, required - preEquipTotal);
+
+    let finalSpd = baseSpd * (1 - total);
+    finalSpd = finalSpd * (1 - quicken);
+    if (els.fury.checked && cls === "Berserker") {
+      finalSpd = finalSpd * 0.25; // Fury Lv.10: 4x faster => quarter delay
+    }
+
+    els.needLine.textContent = `ATK SPD % required to hit target: ${pct(required)}`;
+    els.equipLine.textContent = `Equipment/Rune % still needed (before equip/rune boxes): ${pct(equipNeeded)}`;
+    els.finalLine.textContent = `Final ATK SPD: ${spd(finalSpd)} (base ${baseSpd})`;
+
+    // DPS
+    const atk = parseFloat(els.atk.value || 0);
+    const atkPct = pctInput("atkPct");
+    const racial = pctInput("racialPct");
+    const crit = Math.min(Math.max(pctInput("crit"),0),1);      // whole % → 0..1
+    const critDmg = pctInput("critDmg");                         // whole % → decimal (e.g., 150% => 1.5)
+    const other = parseFloat(els.otherMult.value || 1);
+
+    const baseDamage = atk * (1+atkPct) * (1+racial) * other;
+    const expectedCrit = (1-crit) + crit * (1 + critDmg);
+    const effDamage = baseDamage * expectedCrit;
+    const dps = effDamage / Math.max(finalSpd, 0.0001);
+
+    els.dmgLine.textContent = `Effective Hit Damage: ${effDamage.toFixed(2)}`;
+    els.dpsLine.textContent = `DPS: ${dps.toFixed(2)}`;
+  }
+
+  Object.values(els).forEach(el => {
+    if (el && (el.tagName === 'INPUT' || el.tagName === 'SELECT')) {
+      el.addEventListener('input', recalc);
+      if (el.type === 'checkbox') el.addEventListener('change', recalc);
+    }
+  });
+  recalc();
+</script>
+</body>
+</html>
